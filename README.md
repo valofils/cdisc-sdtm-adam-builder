@@ -228,7 +228,7 @@ This pipeline follows guidance from:
 | New SDTM domain (e.g. MH, EG) | `src/sdtm/` — follow the pattern in `ae.py` |
 | New ADaM dataset (e.g. ADTTE survival) | `src/adam/` |
 | Additional validation rules | `src/validation/checks.py` |
-| TLF output (Table 14.1.1 etc.) | See **Project 2 — TLF Automation Engine** |
+| TLF output (Table 14.1.1 etc.) | See **TLF Automation Engine Project** |
 
 ---
 
