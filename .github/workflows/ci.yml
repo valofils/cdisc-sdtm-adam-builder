@@ -1,0 +1,62 @@
+name: CDISC Pipeline CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Create venv and install dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: .venv/bin/pytest tests/ -v --tb=short
+
+      - name: Run full pipeline (smoke test)
+        run: .venv/bin/python pipeline.py --output-dir /tmp/cdisc_output
+
+      - name: Verify outputs exist
+        run: |
+          ls /tmp/cdisc_output/data/sdtm/
+          ls /tmp/cdisc_output/data/adam/
+          ls /tmp/cdisc_output/outputs/define.xml
+          ls /tmp/cdisc_output/outputs/validation_findings.csv
+
+      - name: Check for validation errors
+        run: |
+          .venv/bin/python -c "
+          import pandas as pd, sys
+          f = pd.read_csv('/tmp/cdisc_output/outputs/validation_findings.csv')
+          errors = f[f['severity']=='ERROR']
+          if len(errors):
+              print(errors.to_string())
+              sys.exit(1)
+          print(f'Validation clean: {len(f)} findings, 0 errors')
+          "
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cdisc-outputs-py${{ matrix.python-version }}
+          path: |
+            /tmp/cdisc_output/data/
+            /tmp/cdisc_output/outputs/
